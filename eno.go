@@ -57,7 +57,14 @@ func (m model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	return fmt.Sprintf("\n\n Hi. This program will exti in %d seconds", m)
+
+	convertOptions := convert.DefaultOptions;
+	convertOptions.FixedWidth = 100
+	convertOptions.FixedHeight = 40
+	
+	converter := convert.NewImageConverter()	
+	
+	return fmt.Sprintf(converter.ImageFile2ASCIIString("brian.jpg",&convertOptions))
 }
 
 func tick() tea.Cmd {
@@ -75,17 +82,9 @@ func tick() tea.Cmd {
 
 //Help menu displayed when ran with eno idk
 func help_menu(){
-
-	convertOptions := convert.DefaultOptions;
-	convertOptions.FixedWidth = 100
-	convertOptions.FixedHeight = 40
-	
-	converter := convert.NewImageConverter()	
-	
-	figure.NewColorFigure("                    Eno","","cyan",true).Print()
-	fmt.Print(converter.ImageFile2ASCIIString("brian.jpg",&convertOptions))	
-	fmt.Println(color.InCyan("                        Your own creative helper"))
-	
+	figure.NewColorFigure("Eno","","cyan",true).Print()
+	fmt.Println(color.InCyan("========================"))
+	fmt.Println(color.InCyan("Your own creative helper"))
 	fmt.Println(color.InWhite("Usage:"))
 	fmt.Println(color.InWhite("        $ eno <command>\n"))
 	fmt.Println(color.InYellow("Commands:"))
