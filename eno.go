@@ -2,14 +2,19 @@ package main
 
 import (
 	"fmt";
+	"log";
+	"time";
 	"os";
 	"github.com/TwiN/go-color";
 	"github.com/qeesung/image2ascii/convert";
 	_ "image/jpeg";
 	_ "image/png";
-	"github.com/common-nighthawk/go-figure"
+	"github.com/common-nighthawk/go-figure";
+	tea "github.com/charmbracelet/bubbletea"
 )
 
+type model int
+type tickMsg time.Time
 func main(){
 	
 	
@@ -19,13 +24,47 @@ func main(){
 		case "idk": 
 			help_menu()
 		case "help":
-			fmt.Println("TODO")
+			p := tea.NewProgram(model(5), tea.WithAltScreen())
+		    if err := p.Start(); err != nil {
+				log.Fatal(err)
+			}
 	    default:
 			fmt.Println("Error no such arg")
 	}
 
 }
 
+func (m model) Init() tea.Cmd {
+	return tea.Batch(tick(), tea.EnterAltScreen)
+}
+
+func (m model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := message.(type){
+		case tea.KeyMsg: 
+			switch msg.String() {
+				case "q", "esc", "ctrl+c":
+					return m, tea.Quit
+			}
+		case tickMsg: 
+			m -= 1
+			if m <= 0 {
+				return m, tea.Quit
+			}
+			return m, tick()
+	}
+	
+	return m, nil
+}
+
+func (m model) View() string {
+	return fmt.Sprintf("\n\n Hi. This program will exti in %d seconds", m)
+}
+
+func tick() tea.Cmd {
+	return tea.Tick(time.Second, func(t time.Time) tea.Msg{
+			return tickMsg(t)
+	})
+}
 //CLI for eno
 //eno idk - Shows help menu for a new person or if someone was forgetful
 
