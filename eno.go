@@ -18,15 +18,17 @@ import (
 
 type model struct {
 	progress progress.Model
+	fileContent []string
+	altScreen bool
 }
 type tickMsg time.Time
+
 const (
 	padding  = 2
 	maxWidth = 100
 )
 
 func main() {
-
 	args := os.Args[1]
 	switch args {
 
@@ -47,7 +49,12 @@ func main() {
 
 }
 
-func (_ model) Init() tea.Cmd {
+func (m model) Init() tea.Cmd {
+	f, err := os.ReadFile("strategies.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	m.fileContent = strings.Split(string(f),"\n")
 	return tea.Batch(tickCmd(), tea.EnterAltScreen)
 }
 
@@ -66,9 +73,10 @@ func (m model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tickMsg:
 		if m.progress.Percent() == 1.0 {
-			return m, tea.Quit
+			m.altScreen = true
+			return m, tea.EnterAltScreen
 		}
-
+		
 		cmd := m.progress.IncrPercent(0.25)
 		return m, tea.Batch(tickCmd(), cmd)
 	case progress.FrameMsg:
@@ -80,8 +88,8 @@ func (m model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (e model) View() (s string) {
-
+func loading(e model) (s string) {
+	
 	convertOptions := convert.DefaultOptions
 	convertOptions.FixedWidth = 100
 	convertOptions.FixedHeight = 40
@@ -91,6 +99,19 @@ func (e model) View() (s string) {
 	s += fmt.Sprintf(converter.ImageFile2ASCIIString("brian.jpg", &convertOptions))
 	s += fmt.Sprintf("\n                         Honor your mistake as a hidden intention\n")
 	s += pad + e.progress.View()
+
+	for _, s := range e.fileContent {
+		fmt.Println(s)
+	}
+	return 
+}
+
+func (e model) View() (s string) {
+    if !e.altScreen {
+		s = loading(e)
+	}else{
+		//Outline of card with clickable option
+	}
 	return
 }
 
