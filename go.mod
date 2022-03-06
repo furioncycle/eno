@@ -4,13 +4,16 @@ go 1.17
 
 require (
 	github.com/TwiN/go-color v1.1.0
+	github.com/charmbracelet/bubbles v0.10.3
 	github.com/charmbracelet/bubbletea v0.20.0
+	github.com/charmbracelet/lipgloss v0.5.0
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
 	github.com/qeesung/image2ascii v1.0.1
 )
 
 require (
 	github.com/aybabtme/rgbterm v0.0.0-20170906152045-cc83f3b3ce59 // indirect
+	github.com/charmbracelet/harmonica v0.1.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect

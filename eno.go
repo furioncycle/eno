@@ -1,88 +1,108 @@
-package main 
+package main
 
 import (
-	"fmt";
-	"log";
-	"time";
-	"os";
-	"github.com/TwiN/go-color";
-	"github.com/qeesung/image2ascii/convert";
-	_ "image/jpeg";
-	_ "image/png";
-	"github.com/common-nighthawk/go-figure";
+	"fmt"
+	"strings"
+	"time"
+	"github.com/TwiN/go-color"
+	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
+//	"github.com/charmbracelet/lipgloss"
+	"github.com/common-nighthawk/go-figure"
+	"github.com/qeesung/image2ascii/convert"
+	_ "image/jpeg"
+	_ "image/png"
+	"log"
+	"os"
 )
 
-type model int
+type model struct {
+	progress progress.Model
+}
 type tickMsg time.Time
-func main(){
-	
-	
+const (
+	padding  = 2
+	maxWidth = 100
+)
+
+func main() {
+
 	args := os.Args[1]
 	switch args {
-	
-		case "idk": 
-			help_menu()
-		case "help":
-			p := tea.NewProgram(model(5), tea.WithAltScreen())
-		    if err := p.Start(); err != nil {
-				log.Fatal(err)
-			}
-	    default:
-			fmt.Println("Error no such arg")
+
+	case "idk":
+		help_menu()
+	case "help":
+		m := model{
+			progress: progress.New(progress.WithDefaultGradient()),
+		}
+
+		p := tea.NewProgram(m, tea.WithAltScreen())
+		if err := p.Start(); err != nil {
+			log.Fatal(err)
+		}
+	default:
+		fmt.Println("Error no such arg")
 	}
 
 }
 
-func (m model) Init() tea.Cmd {
-	return tea.Batch(tick(), tea.EnterAltScreen)
+func (_ model) Init() tea.Cmd {
+	return tea.Batch(tickCmd(), tea.EnterAltScreen)
 }
 
 func (m model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := message.(type){
-		case tea.KeyMsg: 
-			switch msg.String() {
-				case "q", "esc", "ctrl+c":
-					return m, tea.Quit
-			}
-		case tickMsg: 
-			m -= 1
-			if m <= 0 {
-				return m, tea.Quit
-			}
-			return m, tick()
+	switch msg := message.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "q", "esc", "ctrl+c":
+			return m, tea.Quit
+		}
+	case tea.WindowSizeMsg:
+		m.progress.Width = msg.Width - padding*2 - 4
+		if m.progress.Width > maxWidth {
+			m.progress.Width = maxWidth
+		}
+		return m, nil
+	case tickMsg:
+		if m.progress.Percent() == 1.0 {
+			return m, tea.Quit
+		}
+
+		cmd := m.progress.IncrPercent(0.25)
+		return m, tea.Batch(tickCmd(), cmd)
+	case progress.FrameMsg:
+		progressModel, cmd := m.progress.Update(msg)
+		m.progress = progressModel.(progress.Model)
+		return m, cmd
 	}
-	
+
 	return m, nil
 }
 
-func (m model) View() string {
+func (e model) View() (s string) {
 
-	convertOptions := convert.DefaultOptions;
+	convertOptions := convert.DefaultOptions
 	convertOptions.FixedWidth = 100
 	convertOptions.FixedHeight = 40
-	
-	converter := convert.NewImageConverter()	
-	
-	return fmt.Sprintf(converter.ImageFile2ASCIIString("brian.jpg",&convertOptions))
+
+	converter := convert.NewImageConverter()
+	pad := strings.Repeat(" ", padding)
+	s += fmt.Sprintf(converter.ImageFile2ASCIIString("brian.jpg", &convertOptions))
+	s += fmt.Sprintf("\n                         Honor your mistake as a hidden intention\n")
+	s += pad + e.progress.View()
+	return
 }
 
-func tick() tea.Cmd {
-	return tea.Tick(time.Second, func(t time.Time) tea.Msg{
-			return tickMsg(t)
+func tickCmd() tea.Cmd {
+	return tea.Tick(time.Second*1, func(t time.Time) tea.Msg {
+		return tickMsg(t)
 	})
 }
-//CLI for eno
-//eno idk - Shows help menu for a new person or if someone was forgetful
-
-//eno help -- shows an oblique strategy on the screen
-
-
-
 
 //Help menu displayed when ran with eno idk
-func help_menu(){
-	figure.NewColorFigure("Eno","","cyan",true).Print()
+func help_menu() {
+	figure.NewColorFigure("Eno", "", "cyan", true).Print()
 	fmt.Println(color.InCyan("========================"))
 	fmt.Println(color.InCyan("Your own creative helper"))
 	fmt.Println(color.InWhite("Usage:"))
