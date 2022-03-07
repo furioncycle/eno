@@ -6,8 +6,10 @@ import (
 	"time"
 	"github.com/TwiN/go-color"
 	"github.com/charmbracelet/bubbles/progress"
+	"github.com/charmbracelet/bubbles/viewport"
+	//"github.com/charmbracelet/glamour"
 	tea "github.com/charmbracelet/bubbletea"
-//	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/common-nighthawk/go-figure"
 	"github.com/qeesung/image2ascii/convert"
 	_ "image/jpeg"
@@ -16,11 +18,30 @@ import (
 	"os"
 )
 
-type model struct {
-	progress progress.Model
+type state int
+
+const (
+	index state = iota
+	detail
+)
+
+type indexModel struct {
+	progress progress.Model	
 	fileContent []string
-	altScreen bool
 }
+
+type detailModel struct {
+	viewport viewport.Model
+}
+
+type model struct {
+	state state
+	index indexModel
+	detail detailModel
+}
+
+
+
 type tickMsg time.Time
 
 const (
@@ -35,10 +56,7 @@ func main() {
 	case "idk":
 		help_menu()
 	case "help":
-		m := model{
-			progress: progress.New(progress.WithDefaultGradient()),
-		}
-
+		m := model{}
 		p := tea.NewProgram(m, tea.WithAltScreen())
 		if err := p.Start(); err != nil {
 			log.Fatal(err)
@@ -49,46 +67,104 @@ func main() {
 
 }
 
-func (m model) Init() tea.Cmd {
+func newIndexModel() indexModel {
 	f, err := os.ReadFile("strategies.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
-	m.fileContent = strings.Split(string(f),"\n")
-	return tea.Batch(tickCmd(), tea.EnterAltScreen)
+//	m.fileContent = strings.Split(string(f),"\n")}
+	return indexModel{
+		progress: progress.New(progress.WithDefaultGradient()),
+		fileContent: strings.Split(string(f),"\n"),
+	}
 }
 
-func (m model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := message.(type) {
+func newDetailModel() detailModel {
+
+	vp := viewport.New(78,20)
+	vp.Style = lipgloss.NewStyle().
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("62")).
+			PaddingRight(2)
+	return detailModel{
+		viewport: vp,		
+	}
+}
+
+func (m model) Init() tea.Cmd {
+	
+	 m = model{
+		state: index,
+		index: newIndexModel(),
+		detail: newDetailModel(),
+	}
+	
+	return nil
+}
+
+func indexUpdate(message tea.Msg, m model) (indexModel, tea.Cmd) {
+	switch msg := message.(type) {	
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "esc", "ctrl+c":
-			return m, tea.Quit
+			return m.index, tea.Quit
 		}
 	case tea.WindowSizeMsg:
-		m.progress.Width = msg.Width - padding*2 - 4
-		if m.progress.Width > maxWidth {
-			m.progress.Width = maxWidth
+		m.index.progress.Width = msg.Width - padding*2 - 4
+		if m.index.progress.Width > maxWidth {
+			m.index.progress.Width = maxWidth
 		}
-		return m, nil
+		return m.index, nil
 	case tickMsg:
-		if m.progress.Percent() == 1.0 {
-			m.altScreen = true
-			return m, tea.EnterAltScreen
+		if m.index.progress.Percent() == 1.0 {
+			m.state = detail
 		}
 		
-		cmd := m.progress.IncrPercent(0.25)
-		return m, tea.Batch(tickCmd(), cmd)
+		cmd := m.index.progress.IncrPercent(0.25)
+		return m.index, tea.Batch(tickCmd(), cmd)
 	case progress.FrameMsg:
-		progressModel, cmd := m.progress.Update(msg)
-		m.progress = progressModel.(progress.Model)
-		return m, cmd
+		progressModel, cmd := m.index.progress.Update(msg)
+		m.index.progress = progressModel.(progress.Model)
+		return m.index, cmd
 	}
+	return m.index, nil
+}
 
+func detailUpdate(message tea.Msg, m model) (detailModel, tea.Cmd) {
+	//viewport and randomize string 	
+	switch msg := message.(type) {	
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "q", "esc", "ctrl+c":
+			return m.detail, tea.Quit
+		}
+	}
+	return m.detail, nil
+}
+
+func (m model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg:= message.(type) {	
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "q", "esc", "ctrl+c":
+				return m, tea.Quit
+		}
+	}	
+	
+	switch m.state {
+		case index:
+			indexModel,cmd := indexUpdate(message,m)
+			m.index = indexModel
+			return m, cmd
+		case detail:
+			detailModel,cmd := detailUpdate(message,m)
+			m.detail = detailModel
+			return m, cmd
+	}
 	return m, nil
 }
 
-func loading(e model) (s string) {
+func indexView(e indexModel) (s string) {
 	
 	convertOptions := convert.DefaultOptions
 	convertOptions.FixedWidth = 100
@@ -106,11 +182,16 @@ func loading(e model) (s string) {
 	return 
 }
 
-func (e model) View() (s string) {
-    if !e.altScreen {
-		s = loading(e)
-	}else{
-		//Outline of card with clickable option
+func detailView(m detailModel)(s string) {
+	return
+}
+
+func (m model) View() (s string) {
+	switch m.state {
+		case index:
+			indexView(m.index)
+		case detail:
+			detailView(m.detail)	
 	}
 	return
 }
