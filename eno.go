@@ -1,25 +1,31 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
+
 	"github.com/TwiN/go-color"
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
-//	"github.com/charmbracelet/lipgloss"
-	"github.com/common-nighthawk/go-figure"
-	"github.com/qeesung/image2ascii/convert"
+
+	//	"github.com/charmbracelet/lipgloss"
 	_ "image/jpeg"
 	_ "image/png"
 	"log"
 	"os"
+
+	"github.com/common-nighthawk/go-figure"
+	"github.com/qeesung/image2ascii/convert"
 )
 
 type model struct {
-	progress progress.Model
-	fileContent []string
-	altScreen bool
+	progress     progress.Model
+	fileContent  []string
+	altScreen    bool
+	selectedText string
 }
 type tickMsg time.Time
 
@@ -50,11 +56,22 @@ func main() {
 }
 
 func (m model) Init() tea.Cmd {
-	f, err := os.ReadFile("strategies.txt")
-	if err != nil {
-		log.Fatal(err)
+	//	f, err := os.ReadFile("strategies.txt")
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	file, _ := os.Open("strategies.txt")
+	//if err != nil {
+	//	return nil, err
+	//}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
 	}
-	m.fileContent = strings.Split(string(f),"\n")
+	m.fileContent = lines
 	return tea.Batch(tickCmd(), tea.EnterAltScreen)
 }
 
@@ -76,7 +93,9 @@ func (m model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.altScreen = true
 			return m, tea.EnterAltScreen
 		}
-		
+
+		//		r := rand.Intn(len(m.fileContent))
+		//		m.selectedText = m.fileContent[r]
 		cmd := m.progress.IncrPercent(0.25)
 		return m, tea.Batch(tickCmd(), cmd)
 	case progress.FrameMsg:
@@ -89,7 +108,7 @@ func (m model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func loading(e model) (s string) {
-	
+
 	convertOptions := convert.DefaultOptions
 	convertOptions.FixedWidth = 100
 	convertOptions.FixedHeight = 40
@@ -100,16 +119,22 @@ func loading(e model) (s string) {
 	s += fmt.Sprintf("\n                         Honor your mistake as a hidden intention\n")
 	s += pad + e.progress.View()
 
-	for _, s := range e.fileContent {
-		fmt.Println(s)
-	}
-	return 
+	return
 }
 
 func (e model) View() (s string) {
-    if !e.altScreen {
+	file, _ := os.Open("strategies.txt")
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	if !e.altScreen {
 		s = loading(e)
-	}else{
+	} else {
+		fmt.Println(lines[rand.Intn(len(lines))])
 		//Outline of card with clickable option
 	}
 	return
@@ -119,6 +144,21 @@ func tickCmd() tea.Cmd {
 	return tea.Tick(time.Second*1, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
+}
+
+func readLines(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, scanner.Err()
 }
 
 //Help menu displayed when ran with eno idk
