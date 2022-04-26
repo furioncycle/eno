@@ -10,6 +10,7 @@ import (
 	"github.com/TwiN/go-color"
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	//	"github.com/charmbracelet/lipgloss"
 	_ "image/jpeg"
@@ -21,18 +22,34 @@ import (
 	"github.com/qeesung/image2ascii/convert"
 )
 
+const (
+	padding  = 2
+	maxWidth = 100
+)
+
+var (
+	subtle = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
+
+	InfoStyle = lipgloss.NewStyle().
+			Padding(0, 0, 1, 2)
+	BorderStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.AdaptiveColor{Light: "#2B53AF", Dark: "#37B9FF"}).
+			Width(80).
+			Height(80).
+			Padding(0, 1, 1, 2)
+)
+
 type model struct {
 	progress     progress.Model
 	fileContent  []string
 	altScreen    bool
 	selectedText string
+	layoutStyle  lipgloss.Style
+	borderStyle  lipgloss.Style
 }
-type tickMsg time.Time
 
-const (
-	padding  = 2
-	maxWidth = 100
-)
+type tickMsg time.Time
 
 func main() {
 	args := os.Args[1]
@@ -43,6 +60,8 @@ func main() {
 	case "help":
 		m := model{
 			progress: progress.New(progress.WithDefaultGradient()),
+			layoutStyle: InfoStyle,
+			borderStyle: BorderStyle,
 		}
 
 		p := tea.NewProgram(m, tea.WithAltScreen())
@@ -122,7 +141,7 @@ func loading(e model) (s string) {
 	return
 }
 
-func (e model) View() (s string) {
+func (e model) View() string {
 	file, _ := os.Open("strategies.txt")
 	defer file.Close()
 
@@ -132,12 +151,12 @@ func (e model) View() (s string) {
 		lines = append(lines, scanner.Text())
 	}
 	if !e.altScreen {
-		s = loading(e)
+		return loading(e)
 	} else {
-		fmt.Println(lines[rand.Intn(len(lines))])
+		view := lines[rand.Intn(len(lines))]
+		return e.layoutStyle.Render(e.borderStyle.Render(view))
 		//Outline of card with clickable option
 	}
-	return
 }
 
 func tickCmd() tea.Cmd {
