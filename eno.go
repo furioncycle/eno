@@ -31,13 +31,15 @@ var (
 	subtle = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
 
 	InfoStyle = lipgloss.NewStyle().
-			Padding(0, 0, 1, 2)
+			Width(100).
+			Height(100).
+			Padding(0, 0, 0, 0)
 	BorderStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.AdaptiveColor{Light: "#2B53AF", Dark: "#37B9FF"}).
 			Width(80).
 			Height(80).
-			Padding(0, 1, 1, 2)
+			Padding(10, 10, 10, 20)
 )
 
 type model struct {
@@ -59,7 +61,7 @@ func main() {
 		help_menu()
 	case "help":
 		m := model{
-			progress: progress.New(progress.WithDefaultGradient()),
+			progress:    progress.New(progress.WithDefaultGradient()),
 			layoutStyle: InfoStyle,
 			borderStyle: BorderStyle,
 		}
