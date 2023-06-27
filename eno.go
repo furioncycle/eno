@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"math/rand"
-	"strings"
 	"time"
 
 	"github.com/TwiN/go-color"
@@ -77,14 +76,7 @@ func main() {
 }
 
 func (m model) Init() tea.Cmd {
-	//	f, err := os.ReadFile("strategies.txt")
-	//	if err != nil {
-	//		log.Fatal(err)
-	//	}
 	file, _ := os.Open("strategies.txt")
-	//if err != nil {
-	//	return nil, err
-	//}
 	defer file.Close()
 
 	var lines []string
@@ -110,13 +102,11 @@ func (m model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case tickMsg:
-		if m.progress.Percent() == 1.0 {
-			m.altScreen = true
-			return m, tea.EnterAltScreen
-		}
+		// if m.progress.Percent() == 1.0 {
+		// m.altScreen = true
+		// return m, tea.EnterAltScreen
+		// }
 
-		//		r := rand.Intn(len(m.fileContent))
-		//		m.selectedText = m.fileContent[r]
 		cmd := m.progress.IncrPercent(0.25)
 		return m, tea.Batch(tickCmd(), cmd)
 	case progress.FrameMsg:
@@ -128,18 +118,17 @@ func (m model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func loading(e model) (s string) {
+func loading(e model, v string) (s string) {
 
 	convertOptions := convert.DefaultOptions
-	convertOptions.FixedWidth = 100
+	convertOptions.FixedWidth = 80
 	convertOptions.FixedHeight = 40
 
 	converter := convert.NewImageConverter()
-	pad := strings.Repeat(" ", padding)
+	//pad := strings.Repeat(" ", padding)
 	s += fmt.Sprintf(converter.ImageFile2ASCIIString("brian.jpg", &convertOptions))
 	s += fmt.Sprintf("\n                         Honor your mistake as a hidden intention\n")
-	s += pad + e.progress.View()
-
+	s += fmt.Sprintf("\n", v)
 	return
 }
 
@@ -152,13 +141,15 @@ func (e model) View() string {
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
-	if !e.altScreen {
-		return loading(e)
-	} else {
-		view := lines[rand.Intn(len(lines))]
-		return e.layoutStyle.Render(e.borderStyle.Render(view))
-		//Outline of card with clickable option
-	}
+
+	view := lines[rand.Intn(len(lines))]
+	// if !e.altScreen {
+	return loading(e, view)
+	// }
+	// else {
+	// return e.layoutStyle.Render(e.borderStyle.Render(view))
+	//Outline of card with clickable option
+	// }
 }
 
 func tickCmd() tea.Cmd {
